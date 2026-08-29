@@ -123,7 +123,7 @@ test('parseExportZip reports exports without recognisable data', async () => {
   buffer.name = 'export.zip';
   await assert.rejects(
     () => InstaDiff.parseExportZip(buffer, JSZip),
-    /does not contain recognisable followers\/following data/
+    /"export\.zip" does not contain recognisable followers\/following data/
   );
 });
 

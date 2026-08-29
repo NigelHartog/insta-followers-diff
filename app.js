@@ -562,7 +562,7 @@
           els.results.hidden = true;
           showError(err && err.message ? err.message : 'Something went wrong while reading the ZIP files.');
         })
-        .then(function () {
+        .finally(function () {
           els.compare.disabled = false;
           els.compare.textContent = 'Compare';
         });
