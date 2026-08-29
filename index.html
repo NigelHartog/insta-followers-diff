@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Instagram List Diff</title>
+  <meta name="description" content="Compare two Instagram data exports in your browser. Nothing is uploaded.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Instagram List Diff</h1>
+    <p class="privacy">🔒 Your Instagram data is processed entirely in your browser. Nothing is uploaded to a server.</p>
+  </header>
+
+  <main>
+    <section class="uploads">
+      <label class="upload">
+        <span>Previous Instagram export</span>
+        <input type="file" id="prevFile" accept=".zip,application/zip">
+      </label>
+      <label class="upload">
+        <span>Current Instagram export</span>
+        <input type="file" id="currFile" accept=".zip,application/zip">
+      </label>
+      <button type="button" id="compareBtn" class="primary">Compare</button>
+      <p id="error" class="error" role="alert" hidden></p>
+      <div id="detected" class="detected" hidden></div>
+    </section>
+
+    <section id="results" hidden>
+      <div id="summary" class="summary"></div>
+      <nav id="tabs" class="tabs" aria-label="Result lists"></nav>
+
+      <div class="toolbar">
+        <h2 id="listTitle"></h2>
+        <div class="controls">
+          <input type="search" id="search" placeholder="Search username or name">
+          <label class="sr-only" for="sort">Sort</label>
+          <select id="sort">
+            <option value="alpha">A → Z</option>
+            <option value="alphaDesc">Z → A</option>
+          </select>
+        </div>
+        <div class="exports">
+          <button type="button" id="copyBtn">Copy usernames</button>
+          <button type="button" id="txtBtn">Download TXT</button>
+          <button type="button" id="csvBtn">Download CSV</button>
+        </div>
+      </div>
+
+      <div id="lists"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Open source, static and free. Works offline once loaded.</p>
+  </footer>
+
+  <script src="vendor/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
