@@ -181,7 +181,7 @@ test('parseExportFiles reports missing followers/following data for loose files'
   );
 });
 
-test('parseExportFiles accepts a mix of a ZIP export and a loose ZIP is unaffected', async () => {
+test('parseExportFiles routes a ZIP file through the same ZIP parsing logic', async () => {
   const buffer = await buildZip({
     'connections/followers_and_following/followers_1.json': listJson(['alice']),
     'connections/followers_and_following/following.json': JSON.stringify({
@@ -192,6 +192,23 @@ test('parseExportFiles accepts a mix of a ZIP export and a loose ZIP is unaffect
   const parsed = await InstaDiff.parseExportFiles([buffer], JSZip);
   assert.strictEqual(parsed.followers.length, 1);
   assert.strictEqual(parsed.following.length, 2);
+});
+
+test('parseExportFiles lets a ZIP missing one list be completed by a loose file', async () => {
+  // ZIP only has followers; a loose following.json fills in the rest.
+  const buffer = await buildZip({
+    'connections/followers_and_following/followers_1.json': listJson(['alice', 'bob'])
+  });
+  buffer.name = 'followers-only.zip';
+  const following = new File(
+    [JSON.stringify({ relationships_following: JSON.parse(listJson(['alice', 'carol'])) })],
+    'following.json',
+    { type: 'application/json' }
+  );
+  const parsed = await InstaDiff.parseExportFiles([buffer, following], JSZip);
+  assert.strictEqual(parsed.followers.length, 2);
+  assert.strictEqual(parsed.following.length, 2);
+  assert.deepStrictEqual(parsed.files.following, ['following.json']);
 });
 
 test('bundled JSZip vendor file exists', () => {

@@ -223,10 +223,11 @@
   }
 
   /**
-   * Read an Instagram export ZIP file object with JSZip.
+   * Read every followers/following entry out of an Instagram export ZIP with JSZip,
+   * without validating that both lists are present (see `parseExportZip`/`finalizeResult`).
    * Returns `{followers, following, files: {followers: [], following: []}}`.
    */
-  function parseExportZip(file, JSZipLib) {
+  function extractZipContents(file, JSZipLib) {
     var Zip = JSZipLib || (typeof JSZip !== 'undefined' ? JSZip : null);
     if (!Zip) return Promise.reject(new Error('ZIP library (JSZip) could not be loaded.'));
     return Zip.loadAsync(file)
@@ -249,9 +250,19 @@
           );
         });
         return Promise.all(jobs).then(function () {
-          return finalizeResult(result, '"' + file.name + '"');
+          return result;
         });
       });
+  }
+
+  /**
+   * Read an Instagram export ZIP file object with JSZip.
+   * Returns `{followers, following, files: {followers: [], following: []}}`.
+   */
+  function parseExportZip(file, JSZipLib) {
+    return extractZipContents(file, JSZipLib).then(function (result) {
+      return finalizeResult(result, '"' + file.name + '"');
+    });
   }
 
   /** Read a plain-text export file (JSON or HTML) selected directly, without a ZIP wrapper. */
@@ -281,6 +292,8 @@
    * Parse one or more files selected by the user into a single export.
    * Accepts a mix of ZIP archives and loose `.json`/`.html` files (Instagram's
    * JSON export is delivered as several unzipped files when downloaded manually).
+   * Validation (both followers and following must be present) only happens once,
+   * against the combined result, so a ZIP and loose files can complement each other.
    * Returns `{followers, following, files: {followers: [], following: []}}`.
    */
   function parseExportFiles(files, JSZipLib) {
@@ -292,7 +305,7 @@
 
     var jobs = list.map(function (file) {
       if (/\.zip$/i.test(file.name)) {
-        return parseExportZip(file, JSZipLib).then(function (parsed) {
+        return extractZipContents(file, JSZipLib).then(function (parsed) {
           result.followers = result.followers.concat(parsed.followers);
           result.following = result.following.concat(parsed.following);
           result.files.followers = result.files.followers.concat(parsed.files.followers);
