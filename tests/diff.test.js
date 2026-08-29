@@ -20,6 +20,17 @@ test('normalizeUsername strips @, whitespace, URLs and casing', () => {
   assert.strictEqual(InstaDiff.normalizeUsername(null), '');
 });
 
+test('normalizeUsername unwraps Instagram linkshim redirect URLs from HTML exports', () => {
+  const shimmed = 'https://l.instagram.com/?u=https%3A%2F%2Fwww.instagram.com%2Fdave%2F&e=abc123';
+  assert.strictEqual(InstaDiff.normalizeUsername(shimmed), 'dave');
+  // works regardless of parameter order
+  const reordered = 'https://l.instagram.com/?e=abc123&u=https%3A%2F%2Fwww.instagram.com%2Feve%2F';
+  assert.strictEqual(InstaDiff.normalizeUsername(reordered), 'eve');
+  // the encoded destination URL may itself contain '=' characters (e.g. query params)
+  const withEquals = 'https://l.instagram.com/?u=https%3A%2F%2Fwww.instagram.com%2Ffrank%2F%3Ffoo%3Dbar&e=abc123';
+  assert.strictEqual(InstaDiff.normalizeUsername(withEquals), 'frank');
+});
+
 test('new non-followers excludes accounts that were already non-followers', () => {
   const previous = {
     followers: accounts('mutual'),
@@ -88,6 +99,9 @@ test('parses Instagram JSON and HTML list formats', () => {
 
   const html = '<div><a href="https://www.instagram.com/Carol">Carol</a></div>';
   assert.deepStrictEqual(InstaDiff.parseHtmlList(html), [{ username: 'carol', name: '' }]);
+
+  const shimmedHtml = '<div><a href="https://l.instagram.com/?u=https%3A%2F%2Fwww.instagram.com%2Fdave%2F&amp;e=abc123">dave</a></div>';
+  assert.deepStrictEqual(InstaDiff.parseHtmlList(shimmedHtml), [{ username: 'dave', name: '' }]);
 });
 
 function listJson(usernames) {

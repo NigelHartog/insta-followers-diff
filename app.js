@@ -22,6 +22,25 @@
   function normalizeUsername(value) {
     if (typeof value !== 'string') return '';
     var name = value.trim();
+    // Unwrap Instagram's "linkshim" redirect URLs used in HTML exports,
+    // e.g. https://l.instagram.com/?u=https%3A%2F%2Fwww.instagram.com%2Fsomeuser%2F&e=...
+    var shimMatch = name.match(/^https?:\/\/l\.instagram\.com\/[^?]*\?([^#]*)/i);
+    if (shimMatch) {
+      var params = shimMatch[1].split('&');
+      for (var i = 0; i < params.length; i++) {
+        var eq = params[i].indexOf('=');
+        var key = eq === -1 ? params[i] : params[i].slice(0, eq);
+        var val = eq === -1 ? '' : params[i].slice(eq + 1);
+        if (key === 'u' && val) {
+          try {
+            name = decodeURIComponent(val);
+          } catch (err) {
+            name = val;
+          }
+          break;
+        }
+      }
+    }
     // Accept full profile URLs as well as plain usernames.
     var urlMatch = name.match(/^https?:\/\/(?:www\.)?instagram\.com\/([^/?#]+)/i);
     if (urlMatch) name = urlMatch[1];
