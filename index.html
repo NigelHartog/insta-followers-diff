@@ -17,11 +17,13 @@
     <section class="uploads">
       <label class="upload">
         <span>Previous Instagram export</span>
-        <input type="file" id="prevFile" accept=".zip,application/zip">
+        <input type="file" id="prevFile" accept=".zip,.json,.html,application/zip,application/json,text/html" multiple>
+        <small>Select the export ZIP, or the individual followers_*.json/following.json (or .html) files.</small>
       </label>
       <label class="upload">
         <span>Current Instagram export</span>
-        <input type="file" id="currFile" accept=".zip,application/zip">
+        <input type="file" id="currFile" accept=".zip,.json,.html,application/zip,application/json,text/html" multiple>
+        <small>Select the export ZIP, or the individual followers_*.json/following.json (or .html) files.</small>
       </label>
       <button type="button" id="compareBtn" class="primary">Compare</button>
       <p id="error" class="error" role="alert" hidden></p>

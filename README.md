@@ -8,7 +8,9 @@ No Instagram login, no API, no backend, no account, no cost.
 
 ## What it does
 
-Select your **previous** and your **current** Instagram export ZIP and press **Compare**.
+Select your **previous** and your **current** Instagram export and press **Compare**. Each side
+accepts the export **ZIP**, or the individual `followers_*.json`/`following.json` (or `.html`)
+files if you already unzipped them — select multiple files at once to combine them.
 
 Two main lists:
 
@@ -24,17 +26,18 @@ Other features:
 
 * Search, sort (A→Z / Z→A) and per-account **Ignore** buttons.
 * Ignored usernames are kept in `localStorage`, so they stay hidden on future visits and future
-  comparisons. The ZIP files themselves are never stored. Restore them from the **Ignored** tab.
+  comparisons. The export files themselves are never stored. Restore them from the **Ignored** tab.
 * Copy usernames to the clipboard, or download the visible list as TXT or CSV.
 * Shows which files were detected in each export (e.g. `✓ followers_1.json`), and a clear error
-  message when an export is not a valid ZIP or contains no followers/following data.
+  message when an export is not a valid ZIP/JSON/HTML file or contains no followers/following data.
 
 ## How to get your Instagram export
 
 1. Instagram → *Settings* → *Accounts Centre* → *Your information and permissions* →
    *Download your information*.
 2. Request the information for **Followers and following** in **JSON** (HTML also works).
-3. Wait for the e-mail, download the ZIP — do **not** unzip it, the app reads the ZIP directly.
+3. Wait for the e-mail, download the ZIP. You can select it as-is, or unzip it first and select the
+   `followers_*.json`/`following.json` files directly.
 4. Keep an older export around; you need two of them to compare.
 
 ## Deploy to GitHub Pages

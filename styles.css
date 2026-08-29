@@ -43,6 +43,7 @@ section {
 
 .upload { display: block; margin-bottom: 1rem; }
 .upload span { display: block; font-weight: 600; margin-bottom: .35rem; }
+.upload small { display: block; margin-top: .35rem; color: var(--muted); }
 input[type="file"] { width: 100%; }
 
 button {

@@ -202,6 +202,26 @@
     return String(html).replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').trim();
   }
 
+  /** Validate that a parsed result has both followers and following data, sort file lists, and return it. */
+  function finalizeResult(result, label) {
+    if (!result.followers.length && !result.following.length) {
+      throw new Error(
+        label + ' does not contain recognisable followers/following data. ' +
+        'Select the "followers_and_following" export ZIP, or the individual ' +
+        'followers_*.json/following.json files.'
+      );
+    }
+    if (!result.followers.length) {
+      throw new Error(label + ': no followers file found in the export.');
+    }
+    if (!result.following.length) {
+      throw new Error(label + ': no following file found in the export.');
+    }
+    result.files.followers.sort();
+    result.files.following.sort();
+    return result;
+  }
+
   /**
    * Read an Instagram export ZIP file object with JSZip.
    * Returns `{followers, following, files: {followers: [], following: []}}`.
@@ -222,33 +242,75 @@
           if (!kind) return;
           jobs.push(
             entry.async('string').then(function (text) {
-              var accounts = /\.json$/i.test(path) ? parseJsonList(text) : parseHtmlList(text);
-              if (!accounts.length) return;
-              result[kind] = result[kind].concat(accounts);
-              result.files[kind].push(path.split('/').pop());
+              addParsedFile(result, kind, path.split('/').pop(), text);
             }).catch(function () {
               /* Unreadable or malformed single file: skip it, report at the end. */
             })
           );
         });
         return Promise.all(jobs).then(function () {
-          if (!result.followers.length && !result.following.length) {
-            throw new Error(
-              '"' + file.name + '" does not contain recognisable followers/following data. ' +
-              'Make sure you selected the "followers_and_following" export ZIP.'
-            );
-          }
-          if (!result.followers.length) {
-            throw new Error('"' + file.name + '": no followers file found in the export.');
-          }
-          if (!result.following.length) {
-            throw new Error('"' + file.name + '": no following file found in the export.');
-          }
-          result.files.followers.sort();
-          result.files.following.sort();
-          return result;
+          return finalizeResult(result, '"' + file.name + '"');
         });
       });
+  }
+
+  /** Read a plain-text export file (JSON or HTML) selected directly, without a ZIP wrapper. */
+  function readFileAsText(file) {
+    if (typeof file.text === 'function') return file.text();
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        resolve(String(reader.result));
+      };
+      reader.onerror = function () {
+        reject(reader.error || new Error('Could not read "' + file.name + '".'));
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  /** Parse a single non-ZIP file (`.json` or `.html`) and merge it into `result`. */
+  function addParsedFile(result, kind, fileName, text) {
+    var accounts = /\.json$/i.test(fileName) ? parseJsonList(text) : parseHtmlList(text);
+    if (!accounts.length) return;
+    result[kind] = result[kind].concat(accounts);
+    result.files[kind].push(fileName);
+  }
+
+  /**
+   * Parse one or more files selected by the user into a single export.
+   * Accepts a mix of ZIP archives and loose `.json`/`.html` files (Instagram's
+   * JSON export is delivered as several unzipped files when downloaded manually).
+   * Returns `{followers, following, files: {followers: [], following: []}}`.
+   */
+  function parseExportFiles(files, JSZipLib) {
+    var list = Array.prototype.slice.call(files || []);
+    if (!list.length) return Promise.reject(new Error('Please choose a file.'));
+
+    var result = { followers: [], following: [], files: { followers: [], following: [] } };
+    var label = list.length === 1 ? '"' + list[0].name + '"' : 'the selected files';
+
+    var jobs = list.map(function (file) {
+      if (/\.zip$/i.test(file.name)) {
+        return parseExportZip(file, JSZipLib).then(function (parsed) {
+          result.followers = result.followers.concat(parsed.followers);
+          result.following = result.following.concat(parsed.following);
+          result.files.followers = result.files.followers.concat(parsed.files.followers);
+          result.files.following = result.files.following.concat(parsed.files.following);
+        });
+      }
+      var kind = classifyFile(file.name);
+      if (!kind) return Promise.resolve();
+      return readFileAsText(file).then(function (text) {
+        addParsedFile(result, kind, file.name.split('/').pop(), text);
+      }).catch(function () {
+        /* Unreadable or malformed single file: skip it, report at the end. */
+      });
+    });
+
+    return Promise.all(jobs).then(function () {
+      return finalizeResult(result, label);
+    });
   }
 
   /* ------------------------------------------------------------------ *
@@ -561,15 +623,15 @@
     els.compare.addEventListener('click', function () {
       showError('');
       els.detected.hidden = true;
-      var prevFile = els.prev.files && els.prev.files[0];
-      var currFile = els.curr.files && els.curr.files[0];
-      if (!prevFile || !currFile) {
-        showError('Please select both the previous and the current export ZIP file.');
+      var prevFiles = els.prev.files;
+      var currFiles = els.curr.files;
+      if (!prevFiles || !prevFiles.length || !currFiles || !currFiles.length) {
+        showError('Please select both the previous and the current export (ZIP or JSON/HTML files).');
         return;
       }
       els.compare.disabled = true;
       els.compare.textContent = 'Comparing…';
-      Promise.all([parseExportZip(prevFile), parseExportZip(currFile)])
+      Promise.all([parseExportFiles(prevFiles), parseExportFiles(currFiles)])
         .then(function (parsed) {
           state.diff = computeDiff(parsed[0], parsed[1]);
           state.activeTab = 'newNonFollowers';
@@ -579,7 +641,7 @@
         .catch(function (err) {
           state.diff = null;
           els.results.hidden = true;
-          showError(err && err.message ? err.message : 'Something went wrong while reading the ZIP files.');
+          showError(err && err.message ? err.message : 'Something went wrong while reading the selected files.');
         })
         .finally(function () {
           els.compare.disabled = false;
@@ -651,6 +713,7 @@
     parseJsonList: parseJsonList,
     parseHtmlList: parseHtmlList,
     parseExportZip: parseExportZip,
+    parseExportFiles: parseExportFiles,
     initUI: initUI
   };
 });
